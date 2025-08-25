@@ -26,7 +26,7 @@ SMTP_PASS     = get_secret("EMAIL_APP_PASSWORD")  # senha de app do Gmail
 # Layout (deve ser o primeiro st.*)
 # =====================
 st.set_page_config(page_title="Formulário de Candidato", page_icon="provion.ico", layout="centered")
-st.image("logo_provion.png", width=200)
+st.image("logo_provion.png", width=500)
 st.title("Formulário de Candidato")
 
 # =====================
