@@ -4,8 +4,15 @@ import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from datetime import datetime
 import streamlit as st
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+import io
 
 # =====================
 # Segredos / Config (12-factor)
@@ -76,6 +83,125 @@ def validar_cpf(cpf: str) -> bool:
 def so_digitos(valor: str) -> str:
     return re.sub(r"\D", "", (valor or ""))
 
+
+def gerar_pdf_formulario(dados):
+    """Gera PDF com os dados do formulário"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        alignment=1,  # Centralizado
+        textColor=colors.darkblue
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=12,
+        spaceAfter=12,
+        textColor=colors.darkblue
+    )
+    
+    normal_style = styles['Normal']
+    
+    # Conteúdo do PDF
+    story = []
+    
+    # Título
+    story.append(Paragraph("FORMULÁRIO DE CANDIDATO", title_style))
+    story.append(Paragraph(f"<b>{NOME_EMPRESA}</b>", title_style))
+    story.append(Spacer(1, 20))
+    
+    # Dados da Vaga
+    story.append(Paragraph("DADOS DA VAGA", heading_style))
+    story.append(Paragraph(f"<b>Vaga:</b> {dados.get('vaga', '')}", normal_style))
+    story.append(Paragraph(f"<b>Pretensão Salarial:</b> R$ {dados.get('pretensao', 0):.2f}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Dados Pessoais
+    story.append(Paragraph("DADOS PESSOAIS", heading_style))
+    story.append(Paragraph(f"<b>Nome:</b> {dados.get('nome', '')}", normal_style))
+    story.append(Paragraph(f"<b>Data de Nascimento:</b> {dados.get('data_nascimento', '')}", normal_style))
+    story.append(Paragraph(f"<b>CPF:</b> {dados.get('cpf', '')}", normal_style))
+    story.append(Paragraph(f"<b>RG:</b> {dados.get('identidade', '')} - Órgão: {dados.get('orgao_expedidor', '')} - UF: {dados.get('uf_rg', '')} - Data: {dados.get('data_expedicao', '')}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Endereço
+    story.append(Paragraph("ENDEREÇO", heading_style))
+    story.append(Paragraph(f"<b>CEP:</b> {dados.get('cep', '')}", normal_style))
+    story.append(Paragraph(f"<b>Endereço:</b> {dados.get('logradouro', '')}, {dados.get('numero', '')} - {dados.get('complemento', '')}", normal_style))
+    story.append(Paragraph(f"<b>Bairro:</b> {dados.get('bairro', '')}", normal_style))
+    story.append(Paragraph(f"<b>Cidade:</b> {dados.get('cidade', '')} - {dados.get('uf_endereco', '')}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Contato
+    story.append(Paragraph("CONTATO", heading_style))
+    story.append(Paragraph(f"<b>Telefone:</b> {dados.get('telefone', '')}", normal_style))
+    story.append(Paragraph(f"<b>E-mail:</b> {dados.get('email', '')}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Situação Familiar
+    story.append(Paragraph("SITUAÇÃO FAMILIAR", heading_style))
+    story.append(Paragraph(f"<b>Estado Civil:</b> {dados.get('estado_civil', '')}", normal_style))
+    story.append(Paragraph(f"<b>Sexo:</b> {dados.get('sexo', '')}", normal_style))
+    story.append(Paragraph(f"<b>PCD:</b> {dados.get('pcd', '')}", normal_style))
+    story.append(Paragraph(f"<b>Número de Filhos:</b> {dados.get('filhos', 0)}", normal_style))
+    story.append(Paragraph(f"<b>Dependentes IR:</b> {dados.get('dependentes_ir', 0)}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Último Emprego
+    story.append(Paragraph("ÚLTIMO EMPREGO", heading_style))
+    story.append(Paragraph(f"<b>Empresa:</b> {dados.get('ultimo_emprego', '')}", normal_style))
+    story.append(Paragraph(f"<b>Cargo:</b> {dados.get('ultimo_cargo', '')}", normal_style))
+    story.append(Paragraph(f"<b>Período:</b> {dados.get('data_admissao', '')} a {dados.get('data_desligamento', '')}", normal_style))
+    story.append(Paragraph(f"<b>Atividades:</b> {dados.get('atividades_ultimo_cargo', '')}", normal_style))
+    story.append(Paragraph(f"<b>Motivo da Saída:</b> {dados.get('motivo_saida', '')}", normal_style))
+    story.append(Paragraph(f"<b>Telefone:</b> {dados.get('telefone_ultimo_emprego', '')}", normal_style))
+    story.append(Paragraph(f"<b>Contato:</b> {dados.get('contato_ultimo_emprego', '')}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Penúltimo Emprego
+    story.append(Paragraph("PENÚLTIMO EMPREGO", heading_style))
+    story.append(Paragraph(f"<b>Empresa:</b> {dados.get('penultimo_emprego', '')}", normal_style))
+    story.append(Paragraph(f"<b>Cargo:</b> {dados.get('penultimo_cargo', '')}", normal_style))
+    story.append(Paragraph(f"<b>Período:</b> {dados.get('data_admissao_penultimo', '')} a {dados.get('data_desligamento_penultimo', '')}", normal_style))
+    story.append(Paragraph(f"<b>Atividades:</b> {dados.get('atividades_penultimo_cargo', '')}", normal_style))
+    story.append(Paragraph(f"<b>Motivo da Saída:</b> {dados.get('motivo_saida_penultimo', '')}", normal_style))
+    story.append(Paragraph(f"<b>Telefone:</b> {dados.get('telefone_penultimo_emprego', '')}", normal_style))
+    story.append(Paragraph(f"<b>Contato:</b> {dados.get('contato_penultimo_emprego', '')}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Formação
+    story.append(Paragraph("FORMAÇÃO ACADÊMICA", heading_style))
+    story.append(Paragraph(f"<b>Escolaridade:</b> {dados.get('escolaridade', '')}", normal_style))
+    story.append(Paragraph(f"<b>Curso:</b> {dados.get('curso', '')}", normal_style))
+    story.append(Paragraph(f"<b>Instituição:</b> {dados.get('instituicao', '')}", normal_style))
+    story.append(Paragraph(f"<b>Ano de Conclusão:</b> {dados.get('ano_conclusao', '')}", normal_style))
+    story.append(Paragraph(f"<b>Situação:</b> {dados.get('situacao', '')}", normal_style))
+    story.append(Paragraph(f"<b>Outra Formação:</b> {dados.get('outra_formacao', '')}", normal_style))
+    story.append(Spacer(1, 12))
+    
+    # Idiomas
+    story.append(Paragraph("IDIOMAS", heading_style))
+    story.append(Paragraph(f"<b>Idiomas:</b> {', '.join(dados.get('idiomas', []))}", normal_style))
+    story.append(Paragraph(f"<b>Nível:</b> {dados.get('nivel_idioma', '')}", normal_style))
+    story.append(Spacer(1, 20))
+    
+    # Rodapé
+    story.append(Paragraph(f"<i>Formulário enviado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</i>", normal_style))
+    story.append(Paragraph(f"<i>Consentimento LGPD: {dados.get('consentiu', False)}</i>", normal_style))
+    
+    # Construir PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
 # =====================
 # Estado inicial (session)
 # =====================
@@ -112,7 +238,12 @@ with st.form("form_candidato"):
     with col_a:
         nome_completo = st.text_input("Nome Completo")
     with col_b:
-        data_nascimento = st.date_input("Data de Nascimento")
+        data_nascimento = st.date_input(
+            "Data de Nascimento",
+            min_value=datetime(1950, 1, 1).date(),
+            max_value=datetime(2015, 12, 31).date(),
+            format="DD/MM/YYYY"
+        )
 
     col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
@@ -128,7 +259,12 @@ with st.form("form_candidato"):
 
     col4, col5 = st.columns([2, 2])
     with col4:
-        data_expedicao = st.date_input("Data de Expedição")
+        data_expedicao = st.date_input(
+            "Data de Expedição",
+            min_value=datetime(1950, 1, 1).date(),
+            max_value=datetime.now().date(),
+            format="DD/MM/YYYY"
+        )
     with col5:
         uf_rg = st.selectbox("UF de Expedição (RG)", options=["Selecione a UF"] + UFS, index=0)
 
@@ -236,8 +372,18 @@ with st.form("form_candidato"):
         atividades_ultimo_cargo = st.text_area("Atividades (Último Cargo)")
     with ue2:
         ultimo_cargo = st.text_input("Cargo (Último)")
-        data_admissao = st.date_input("Data de Admissão (Último)")
-        data_desligamento = st.date_input("Data de Desligamento (Último)")
+        data_admissao = st.date_input(
+            "Data de Admissão (Último)",
+            min_value=datetime(1950, 1, 1).date(),
+            max_value=datetime.now().date(),
+            format="DD/MM/YYYY"
+        )
+        data_desligamento = st.date_input(
+            "Data de Desligamento (Último)",
+            min_value=datetime(1950, 1, 1).date(),
+            max_value=datetime.now().date(),
+            format="DD/MM/YYYY"
+        )
     ue3, ue4 = st.columns(2)
     with ue3:
         motivo_saida = st.text_input("Motivo da Saída (Último)")
@@ -252,8 +398,18 @@ with st.form("form_candidato"):
         atividades_penultimo_cargo = st.text_area("Atividades (Penúltimo Cargo)")
     with pe2:
         penultimo_cargo = st.text_input("Cargo (Penúltimo)")
-        data_admissao_penultimo = st.date_input("Data de Admissão (Penúltimo)")
-        data_desligamento_penultimo = st.date_input("Data de Desligamento (Penúltimo)")
+        data_admissao_penultimo = st.date_input(
+            "Data de Admissão (Penúltimo)",
+            min_value=datetime(1950, 1, 1).date(),
+            max_value=datetime.now().date(),
+            format="DD/MM/YYYY"
+        )
+        data_desligamento_penultimo = st.date_input(
+            "Data de Desligamento (Penúltimo)",
+            min_value=datetime(1950, 1, 1).date(),
+            max_value=datetime.now().date(),
+            format="DD/MM/YYYY"
+        )
     pe3, pe4 = st.columns(2)
     with pe3:
         motivo_saida_penultimo = st.text_input("Motivo da Saída (Penúltimo)")
@@ -325,65 +481,80 @@ if enviar:
     cep_num = so_digitos(cep_input)
     telefone_str = so_digitos(telefone)
 
-    # Monta corpo do e-mail
+    # Preparar dados para o PDF
+    dados_formulario = {
+        'vaga': dados_vaga,
+        'pretensao': pretensao_salarial,
+        'nome': nome_completo,
+        'data_nascimento': data_nascimento.strftime('%d/%m/%Y'),
+        'cpf': cpf,
+        'identidade': identidade,
+        'orgao_expedidor': orgao_expedidor,
+        'uf_rg': uf_rg,
+        'data_expedicao': data_expedicao.strftime('%d/%m/%Y'),
+        'cep': cep_num,
+        'logradouro': logradouro,
+        'numero': numero,
+        'complemento': complemento,
+        'bairro': bairro,
+        'cidade': cidade,
+        'uf_endereco': uf_endereco,
+        'telefone': telefone_str,
+        'email': email,
+        'estado_civil': estado_civil,
+        'sexo': sexo,
+        'pcd': pcd,
+        'filhos': filhos,
+        'dependentes_ir': len(dependentes),
+        'ultimo_emprego': ultimo_emprego,
+        'ultimo_cargo': ultimo_cargo,
+        'data_admissao': data_admissao.strftime('%d/%m/%Y'),
+        'data_desligamento': data_desligamento.strftime('%d/%m/%Y'),
+        'atividades_ultimo_cargo': atividades_ultimo_cargo,
+        'motivo_saida': motivo_saida,
+        'telefone_ultimo_emprego': telefone_ultimo_emprego,
+        'contato_ultimo_emprego': contato_ultimo_emprego,
+        'penultimo_emprego': penultimo_emprego,
+        'penultimo_cargo': penultimo_cargo,
+        'data_admissao_penultimo': data_admissao_penultimo.strftime('%d/%m/%Y'),
+        'data_desligamento_penultimo': data_desligamento_penultimo.strftime('%d/%m/%Y'),
+        'atividades_penultimo_cargo': atividades_penultimo_cargo,
+        'motivo_saida_penultimo': motivo_saida_penultimo,
+        'telefone_penultimo_emprego': telefone_penultimo_emprego,
+        'contato_penultimo_emprego': contato_penultimo_emprego,
+        'escolaridade': escolaridade,
+        'curso': curso,
+        'instituicao': instituicao,
+        'ano_conclusao': ano_conclusao,
+        'situacao': situacao,
+        'outra_formacao': outra_formacao,
+        'idiomas': idiomas,
+        'nivel_idioma': nivel_idioma,
+        'consentiu': consentiu
+    }
+
+    # Gerar PDF
+    try:
+        pdf_content = gerar_pdf_formulario(dados_formulario)
+        st.info(f"📄 PDF gerado com sucesso: {len(pdf_content)} bytes")
+    except Exception as e:
+        st.error(f"❌ Erro ao gerar PDF: {e}")
+        st.stop()
+
+    # Corpo do e-mail (simplificado)
     corpo_email = f"""
-    Formulário de Candidato
+    Olá,
 
+    Novo formulário de candidato recebido!
+
+    Candidato: {nome_completo}
     Vaga: {dados_vaga}
-    Pretensão Salarial (R$): {pretensao_salarial:.2f}
+    Data: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
 
-    Nome: {nome_completo}
-    Data de Nascimento: {data_nascimento}
-    CPF: {cpf}
-    RG: {identidade} - Órgão: {orgao_expedidor} - UF Expedição: {uf_rg} - Data: {data_expedicao}
+    Os dados completos estão no PDF anexo.
 
-    Endereço:
-    CEP: {cep_num}
-    Logradouro: {logradouro}
-    Número: {numero}
-    Complemento: {complemento}
-    Bairro: {bairro}
-    Cidade: {cidade}
-    UF: {uf_endereco}
-
-    Contato:
-    Telefone: {telefone_str}
-    E-mail: {email}
-
-    Situação Familiar:
-    Estado Civil: {estado_civil}
-    Sexo: {sexo}
-    PCD: {pcd}
-    Filhos: {filhos}
-
-    Dependentes IR: {len(dependentes)}
-    Dependentes (JSON): {dependentes}
-
-    Último Emprego: {ultimo_emprego} | Cargo: {ultimo_cargo}
-    Atividades (último): {atividades_ultimo_cargo}
-    Período: {data_admissao} a {data_desligamento}
-    Motivo Saída: {motivo_saida}
-    Telefone (último): {telefone_ultimo_emprego}
-    Contato (último): {contato_ultimo_emprego}
-
-    Penúltimo Emprego: {penultimo_emprego} | Cargo: {penultimo_cargo}
-    Atividades (penúltimo): {atividades_penultimo_cargo}
-    Período: {data_admissao_penultimo} a {data_desligamento_penultimo}
-    Motivo Saída (penúltimo): {motivo_saida_penultimo}
-    Telefone (penúltimo): {telefone_penultimo_emprego}
-    Contato (penúltimo): {contato_penultimo_emprego}
-
-    Formação:
-    Escolaridade: {escolaridade}
-    Curso: {curso}
-    Instituição: {instituicao}
-    Ano Conclusão: {ano_conclusao}
-    Situação: {situacao}
-
-    Idiomas: {idiomas}
-    Nível geral: {nivel_idioma}
-
-    LGPD: consentimento = {bool(consentiu)} em {datetime.now().isoformat()}
+    Atenciosamente,
+    Sistema de Formulários - {NOME_EMPRESA}
     """.strip()
 
     # Verifica segredo de e-mail somente no envio
@@ -395,8 +566,19 @@ if enviar:
     msg = MIMEMultipart()
     msg['From'] = EMAIL_FROM
     msg['To'] = EMAIL_DESTINO
-    msg['Subject'] = "Nova resposta - Questionário RECANORTE"
+    msg['Subject'] = f"Formulário de Candidato - {nome_completo}"
     msg.attach(MIMEText(corpo_email, 'plain', 'utf-8'))
+    
+    # Anexar PDF
+    nome_arquivo = f"Formulario_Candidato_{nome_completo.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    try:
+        pdf_attachment = MIMEApplication(pdf_content, _subtype='pdf')
+        pdf_attachment.add_header('Content-Disposition', 'attachment', filename=nome_arquivo)
+        msg.attach(pdf_attachment)
+        st.info(f"📎 PDF anexado: {nome_arquivo}")
+    except Exception as e:
+        st.error(f"❌ Erro ao anexar PDF: {e}")
+        st.stop()
 
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
