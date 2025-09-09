@@ -536,7 +536,6 @@ if enviar:
     # Gerar PDF
     try:
         pdf_content = gerar_pdf_formulario(dados_formulario)
-        st.info(f"📄 PDF gerado com sucesso: {len(pdf_content)} bytes")
     except Exception as e:
         st.error(f"❌ Erro ao gerar PDF: {e}")
         st.stop()
@@ -575,23 +574,15 @@ if enviar:
         pdf_attachment = MIMEApplication(pdf_content, _subtype='pdf')
         pdf_attachment.add_header('Content-Disposition', 'attachment', filename=nome_arquivo)
         msg.attach(pdf_attachment)
-        st.info(f"📎 PDF anexado: {nome_arquivo}")
     except Exception as e:
         st.error(f"❌ Erro ao anexar PDF: {e}")
         st.stop()
 
     try:
-        st.info("📤 Conectando ao servidor de email...")
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            st.info("🔐 Iniciando conexão segura...")
             server.starttls()
-            st.info("🔑 Fazendo login...")
             server.login(SMTP_USER, SMTP_PASS)
-            st.info("📧 Enviando email com anexo...")
             server.send_message(msg)
-        st.success("✅ Respostas enviadas com sucesso!")
-        st.success(f"📎 PDF anexado: {nome_arquivo}")
+        st.success("✅ Formulário enviado com sucesso!")
     except Exception as e:
-        st.error(f"❌ Erro ao enviar: {e}")
-        import traceback
-        st.error(f"Detalhes: {traceback.format_exc()}")
+        st.error("❌ Erro ao enviar formulário. Tente novamente ou entre em contato conosco.")
