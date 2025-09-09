@@ -581,10 +581,17 @@ if enviar:
         st.stop()
 
     try:
+        st.info("📤 Conectando ao servidor de email...")
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+            st.info("🔐 Iniciando conexão segura...")
             server.starttls()
+            st.info("🔑 Fazendo login...")
             server.login(SMTP_USER, SMTP_PASS)
+            st.info("📧 Enviando email com anexo...")
             server.send_message(msg)
         st.success("✅ Respostas enviadas com sucesso!")
+        st.success(f"📎 PDF anexado: {nome_arquivo}")
     except Exception as e:
         st.error(f"❌ Erro ao enviar: {e}")
+        import traceback
+        st.error(f"Detalhes: {traceback.format_exc()}")
